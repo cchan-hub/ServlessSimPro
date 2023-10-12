@@ -15,17 +15,17 @@ from algorithmComponents.PopQueue import FCFS, SJF, HRRN
 from dataStructure.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo, Task, ContainerState
 
 
-# ##################可调整的仿真参数#######################
-req_num = 1000  # 在这里调整req数量大小
-P_idle = 92.61  # PM空闲能耗
-P_max = 259.67  # PM最大能耗
-P_mid = 94.8  # 容器处于空闲态的能耗
+# ################## Adjustable Simulation Parameters #######################
+req_num = 1000
+P_idle = 92.61
+P_max = 259.67
+P_mid = 94.8
 cs_factor = 0.52
 
-reuseTimeWindow = 600  # 重用时间窗长度
+reuseTimeWindow = 600
 
 USE_CONSOLIDATION = True
-CONSOLIDATION_TIME_INTERVAL = 300  # 每隔5分钟进行一次整合
+CONSOLIDATION_TIME_INTERVAL = 300
 CONSOLIDATION_THRESHOLD = 0.38
 
 LOG_TIME_INTERVAL = 50
@@ -36,25 +36,25 @@ USE_QUEUE = True
 QUEUE_THRESHOLD = [50] * APP_NUM
 MAX_QUEUE_LENGTH = [20] * APP_NUM
 
-# ###################可调整的策略########################
+# ################### Adaptable Strategies ########################
 
 ContainerPlacementStrategy = ConPlaceAlgo.FIRST_FIT
 RequestAllocationStrategy = ReqAllocAlgo.EARLIEST_KILLED
 ContainerConsolidationStrategy = ConConsAlgo.MIN_PM_NUM
 PopQueueStrategy = PopQueueAlgo.FCFS
 
-# ##################全局变量#######################
-max_energy = 0  # 能耗归一化因子
-max_latency = 0  # 最大总延迟
-max_clodStartTimes = req_num  # 最大冷启动次数
-cold_start_times = 0  # 冷启动次数
-total_latency = 0  # 总延迟
-total_energy = 0  # 总能耗
+# ################## Global Variables #######################
+max_energy = 0
+max_latency = 0
+max_clodStartTimes = req_num
+cold_start_times = 0
+total_latency = 0
+total_energy = 0
 reject_num = 0
-consolidation_num = 1  # 整合次序
-log_num = 1  # log次序
+consolidation_num = 1
+log_num = 1
 seq = 0
-cpu_pm = CPU  # 物理机CPU数目
+cpu_pm = CPU
 reqList = []
 appList = []
 consolidation_num_list = []
@@ -79,9 +79,9 @@ activePm_list = []
 
 def initEnvironment():
     global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency
-    # 1980951个REQ
+    # 1980951 REQ
     reqList = dataStructure.req.getReqList()
-    # 119个APP
+    # 119 APP
     appList = dataStructure.app.getAppList(APP_CONF_RANDOM)
     # init activeContainers
     for appId in range(APP_NUM):
@@ -95,12 +95,11 @@ def initEnvironment():
         num0 += 1
         if num0 == req_num:
             break
-    # 计算最大总能耗，最大总延迟: 每到一个请求都冷启动
     num1 = 0
     for req in reqList:
         max_energy += (req.duration + appList[req.appId].coldStartTime) * (P_max - P_idle) * appList[
             req.appId].cpu / cpu_pm + (req.duration + appList[req.appId].coldStartTime + reuseTimeWindow) * P_idle \
-                      + reuseTimeWindow * (P_mid - P_idle)  # NOTE:假设每个请求单独分到一台机器上
+                      + reuseTimeWindow * (P_mid - P_idle)
         max_latency += appList[req.appId].coldStartTime
         num1 += 1
         if num1 == req_num:
@@ -112,7 +111,6 @@ def createContainer(req, createTime):
     containerList.append(container)
     activeContainers[container.appId].append(container.id)
     req.containerId = container.id
-    # 贪婪地将容器分配容器给Pm
     if ContainerPlacementStrategy == ConPlaceAlgo.FIRST_FIT:
         noAvailablePM = FirstFit(pmList, container)
     elif ContainerPlacementStrategy == ConPlaceAlgo.MIN_VEC_DIST:
@@ -120,7 +118,7 @@ def createContainer(req, createTime):
     else:
         print("Error: no container placement strategy is selected!")
         assert 1 == 0
-    if noAvailablePM:  # 增加PM
+    if noAvailablePM:
         pm0 = PM(createTime)
         pm0.remainMem -= container.mem
         pm0.remainCpu -= container.cpu
@@ -137,14 +135,13 @@ def containerKill(req, time):
             pm.containerIdList.remove(container.id)
             pm.remainMem += container.mem
             pm.remainCpu += container.cpu
-            # NOTE: 如果物理机空闲，此时应该释放物理机的资源，即需要对物理机的生命周期进行管理。
             if len(pm.containerIdList) == 0:
                 pm.alive = False
                 pm.start_end_time[1] = time
             break
 
 
-def handleReq(req, time):  # 处理Req
+def handleReq(req, time):
     if not USE_QUEUE:
         requestAlloc(req, time)
     else:
@@ -168,13 +165,13 @@ def handleReq(req, time):  # 处理Req
 
 
 def requestAlloc(req, time):
-    spareCon2ThisReq = []  # 该req的所有空闲容器
+    spareCon2ThisReq = []
     for containerId in activeContainers[req.appId]:
         con = containerList[containerId]
         if ContainerState(con.state.value) == ContainerState.SPARE:
             spareCon2ThisReq.append(con)
 
-    if RequestAllocationStrategy == ReqAllocAlgo.EARLIEST_KILLED:  # 使用MinTimeSlot算法构造集群初始状态。
+    if RequestAllocationStrategy == ReqAllocAlgo.EARLIEST_KILLED:
         container = EarliestKilled(spareCon2ThisReq)
     elif RequestAllocationStrategy == ReqAllocAlgo.LATEST_KILLED:
         container = LatestKilled(spareCon2ThisReq)
@@ -186,7 +183,6 @@ def requestAlloc(req, time):
     global seq
     seq += 1
     if container is not None:
-        # 删除job队列中的CONTAINER_KILL
         killIndex = -1
         for ii in range(len(jobList)):
             if jobList[ii][2] == Task.CON_KILL and jobList[ii][3].containerId == container.id:
@@ -197,11 +193,10 @@ def requestAlloc(req, time):
         if killIndex < len(jobList):
             heapq._siftup(jobList, killIndex)
             heapq._siftdown(jobList, 0, killIndex)
-        # 将req装入容器中
         req.containerId = container.id
         container.run(time)
-        heapq.heappush(jobList, (req.run_end_timestamp, seq, Task.CON_SPARE, req))  # req结束  # NOTE:添加由当前事件触发的下一事件。
-        addPeriodicJob(req, req.run_end_timestamp)  # NOTE: 一旦发现任何下一事件可能在最后一次整合过程后发生，就增加容器整合事件。
+        heapq.heappush(jobList, (req.run_end_timestamp, seq, Task.CON_SPARE, req))
+        addPeriodicJob(req, req.run_end_timestamp)
     else:
         createContainer(req, time)
         heapq.heappush(jobList, (containerList[-1].coldStartEndTime, seq, Task.CON_RUN, req))
@@ -260,7 +255,6 @@ def addPeriodicJob(req, time):
 
 
 def systemLog(time):
-    # 更新能耗、延迟
     updateEnergy(time)
     updateLatency(time)
 
@@ -290,18 +284,13 @@ def containerConsolidate(time):
     if len(migrationConList) > 0:
         global migration_num
         migration_num += len(migrationConList)
-    # 关闭空闲的物理机
     for pm in pmList:
         if len(pm.containerIdList) == 0 and pm.alive:
             pm.alive = False
             pm.start_end_time[1] = time
-    # 对PM改变的容器 更新Container List
     for container in migrationConList:
         container.coldStart(time, appList[container.appId].coldStartTime)
-
-    # 对PM改变的容器 更新Job List
     for container in migrationConList:
-        # 删除job队列中的CONTAINER
         killIndex = -1
         reqId = -1
         for ii in range(len(jobList)):
@@ -325,7 +314,7 @@ def containerConsolidate(time):
 # ################ Metrics #######################
 
 
-def print_obj(obj):  # 打印对象的所有属性
+def print_obj(obj):
     print(obj.__dict__)
 
 
@@ -344,7 +333,6 @@ def updateLatency(time):
 
 def updateEnergy(time):
     global total_energy
-    # 第一部分：计算容器能耗
     cpu_i = []
     t_i_cs = []
     t_i_run = []
@@ -368,7 +356,7 @@ def updateEnergy(time):
         t_i_run.append(t_run)
 
         if container.killedTime != -1:
-            t_total = container.killedTime - container.createTime  # 容器从创造到被杀死的时间
+            t_total = container.killedTime - container.createTime
         else:
             t_total = time - container.createTime
         t_i_total.append(t_total)
@@ -378,7 +366,6 @@ def updateEnergy(time):
         sum_cs += cpu_i[i] * t_i_cs[i]
         sum_running += cpu_i[i] * t_i_run[i]
         sum_total += cpu_i[i] * t_i_total[i]
-    # 第二部分：计算物理机的能耗
     t_pm = 0
     for pm in pmList:
         if pm.start_end_time[1] == -1:
@@ -422,11 +409,11 @@ def getCpuMemUsage():
     return using_cpu/total_cpu, using_mem/total_mem
 
 
-def getColdStartProb():  # 计算冷启动概率
+def getColdStartProb():
     return cold_start_times/max_clodStartTimes
 
 
-def getColdStart():  # 计算冷启动概率
+def getColdStart():
     return cold_start_times
 
 
@@ -455,7 +442,7 @@ def getRejectProb():
     return reject_num/req_num
 
 
-def getMigrationNum():  # 迁移的容器数
+def getMigrationNum():
     return migration_num
 
 
@@ -508,31 +495,20 @@ def sim():
 
         if len(jobList) == 0:
             endTime = time
-        # print("\n============== time : "+str(time)+"============================\n")
-        # print(task)
-        # print("req: "+str(req.id))
-        # print("----")
-        # for c in containerList:
-        #     if ContainerState(c.state.value) != ContainerState.KILL:
-        #         print_obj(c)
-        # print("----")
-        # for pm in pmList:
-        #     print_obj(pm)
     updateLatency(endTime)
 
-    print("\n==========================================\n")
-    print("消耗的总能量:" + str(getEnergy(endTime)))
-    print("总延迟:" + str(getLatency(endTime)))
-    print("冷启动次数:" + str(getColdStart()))
-    print("拒绝次数:" + str(getReject()))
-    print("cpu:" + str(getAvg(u_cpu_list)))
-    print("mem:" + str(getAvg(u_mem_list)))
-    print("平均最大并发度:" + str(getAvg(max_concur_list)))
-    print("平均冷启动状态:" + str(getAvg(cold_start_list)))
-    print("平均运行状态:" + str(getAvg(run_list)))
-    print("平均空闲状态:" + str(getAvg(spare_list)))
-    print("平均死亡状态:" + str(getAvg(kill_list)))
-    print("平均活跃PM:" + str(getAvg(activePm_list)))
+    print("Total Energy Consumption:" + str(getEnergy(endTime)))
+    print("Total Latency:" + str(getLatency(endTime)))
+    print("Cold Start Count:" + str(getColdStart()))
+    print("Rejection Count:" + str(getReject()))
+    print("Average CPU Allocation Rate:" + str(getAvg(u_cpu_list)))
+    print("Average memory Allocation Rate:" + str(getAvg(u_mem_list)))
+    print("Average Maximum Concurrency:" + str(getAvg(max_concur_list)))
+    print("Average Cold Start State Count:" + str(getAvg(cold_start_list)))
+    print("Average Running State Count:" + str(getAvg(run_list)))
+    print("Average Idle State Count:" + str(getAvg(spare_list)))
+    print("Average Dead State Count:" + str(getAvg(kill_list)))
+    print("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
 
 
 if __name__ == "__main__":

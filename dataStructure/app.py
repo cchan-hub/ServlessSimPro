@@ -22,15 +22,12 @@ def getAppList(APP_CONF_RANDOM):
             appList.append(App(i, fixedMemList[i], fixedCpuList[i], fixedColdStartTime[i]))
         return appList
     else:
-        # 根据阿里云实际设定，随机生成CPU, mem, coldStartTime，
-        # CPU:0.05-16,以0.05递增，Memory:128-32768,以64递增，带宽5Gbps。CPU:Memory = 1:1 - 1:4。最大值为16核，32GB，比值为1:2。
-        # 裸金属服务器大小为96核，192GB，比值为1:2。
         memList = []
         cpuList = []
         coldStartTime = []
         for i in range(APP_NUM):
             memoryGB = random.randint(2, 512) * 64 / 1024
-            memList.append(memoryGB)  # 转化为以GB为单位的计费方式。
+            memList.append(memoryGB)
             cpu_min, cpu_max = max(0.05, memoryGB / 4), min(16.0, memoryGB)
             cpu_capacity = round(random.randint(math.ceil(cpu_min / 0.05), math.floor(cpu_max / 0.05)) * 0.05, 2)
             cpuList.append(cpu_capacity)
