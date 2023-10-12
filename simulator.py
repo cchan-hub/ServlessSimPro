@@ -258,7 +258,7 @@ def systemLog(time):
     updateEnergy(time)
     updateLatency(time)
 
-    # image
+    # Snapshot
     u_cpu, u_mem = getCpuMemUsage()
     max_concur = getConcur4AllApps()
     cold_start, run, spare, kill = getContainerStateNum()
@@ -304,7 +304,7 @@ def containerConsolidate(time):
         if killIndex < len(jobList):
             heapq._siftup(jobList, killIndex)
             heapq._siftdown(jobList, 0, killIndex)
-        # 添加job
+        # add job
         global seq
         seq += 1
         heapq.heappush(jobList, (container.coldStartEndTime, seq, Task.CON_RUN, reqList[reqId]))
