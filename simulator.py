@@ -511,6 +511,10 @@ def sim():
     print("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
 
 
+def validation():
+    print("validation...")
+
+
 if __name__ == "__main__":
     initEnvironment()
     sim()
