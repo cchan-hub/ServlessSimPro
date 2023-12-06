@@ -3,16 +3,17 @@
 # @Time    : 2022/11/15 15:30
 
 import heapq
-from dataStructure.container import Container
-from dataStructure.pm import PM, CPU
-from dataStructure.app import App, APP_NUM
-import dataStructure.req
-import dataStructure.app
-from algorithmComponents.ContainerPlacement import FirstFit, MinVectorDist
-from algorithmComponents.RequestAllocation import EarliestKilled, LatestKilled, RandomSelection
-from algorithmComponents.ContainerConsolidation import MinPmNum
-from algorithmComponents.PopQueue import FCFS, SJF, HRRN
-from dataStructure.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo, Task, ContainerState
+import logging
+from resource.container import Container
+from resource.pm import PM, CPU
+from resource.app import App, APP_NUM
+import resource.req
+import resource.app
+from schedulingInterface.ContainerPlacement import FirstFit, MinVectorDist
+from schedulingInterface.RequestAllocation import EarliestKilled, LatestKilled, RandomSelection
+from schedulingInterface.ContainerConsolidation import MinPmNum
+from schedulingInterface.PopQueue import FCFS, SJF, HRRN
+from enumClass.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo, Task, ContainerState
 
 
 # ################## Adjustable Simulation Parameters #######################
@@ -65,7 +66,7 @@ activeContainers = {}
 jobList = []
 appWaitingQueue = {}
 migration_num = 0
-
+logger = logging.getLogger(__name__)
 u_cpu_list = []
 u_mem_list = []
 max_concur_list = []
@@ -78,11 +79,16 @@ activePm_list = []
 
 
 def initEnvironment():
-    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency
+    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency, logger
+    # logger
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler('./logs/log')
+    file_handler.setFormatter(logging.Formatter(fmt="%(asctime)-15s %(levelname)s %(filename)s %(lineno)d %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(file_handler)
     # 1980951 REQ
-    reqList = dataStructure.req.getReqList()
+    reqList = resource.req.getReqList()
     # 119 APP
-    appList = dataStructure.app.getAppList(APP_CONF_RANDOM)
+    appList = resource.app.getAppList(APP_CONF_RANDOM)
     # init activeContainers
     for appId in range(APP_NUM):
         activeContainers[appId] = []
@@ -116,7 +122,7 @@ def createContainer(req, createTime):
     elif ContainerPlacementStrategy == ConPlaceAlgo.MIN_VEC_DIST:
         noAvailablePM = MinVectorDist(pmList, container)
     else:
-        print("Error: no container placement strategy is selected!")
+        logger.error("No container placement strategy is selected!")
         assert 1 == 0
     if noAvailablePM:
         pm0 = PM(createTime)
@@ -178,7 +184,7 @@ def requestAlloc(req, time):
     elif RequestAllocationStrategy == ReqAllocAlgo.RANDOM:
         container = RandomSelection(spareCon2ThisReq)
     else:
-        print("Error: no request allocation strategy is selected!")
+        logger.error("No request allocation strategy is selected!")
         assert 1 == 0
     global seq
     seq += 1
@@ -224,7 +230,7 @@ def containerSpare(req, time):
         elif PopQueueStrategy == PopQueueAlgo.HRRN:
             selectedReq = HRRN(appWaitingQueue[req.appId], time)
         else:
-            print("Error: no pop queue strategy is selected!")
+            logger.error("No pop queue strategy is selected!")
             assert 1 == 0
         selectedReq.containerId = req.containerId
         containerRun(selectedReq, time)
@@ -278,7 +284,7 @@ def containerConsolidate(time):
     if ContainerConsolidationStrategy == ConConsAlgo.MIN_PM_NUM:
         migrationConList = MinPmNum(time, pmList, containerList, CONSOLIDATION_THRESHOLD)
     else:
-        print("Error: no container consolidation strategy is selected!")
+        logger.error("No container consolidation strategy is selected!")
         assert 1 == 0
 
     if len(migrationConList) > 0:
@@ -312,10 +318,6 @@ def containerConsolidate(time):
         cold_start_times += 1
 
 # ################ Metrics #######################
-
-
-def print_obj(obj):
-    print(obj.__dict__)
 
 
 def updateLatency(time):
@@ -476,6 +478,7 @@ def getAvg(li):
 
 
 def sim():
+    logger.info("system start")
     endTime = 0
     while len(jobList) != 0:
         (time, sequence, task, req) = heapq.heappop(jobList)
@@ -497,25 +500,20 @@ def sim():
             endTime = time
     updateLatency(endTime)
 
-    print("Total Energy Consumption:" + str(getEnergy(endTime)))
-    print("Total Latency:" + str(getLatency(endTime)))
-    print("Cold Start Count:" + str(getColdStart()))
-    print("Rejection Count:" + str(getReject()))
-    print("Average CPU Allocation Rate:" + str(getAvg(u_cpu_list)))
-    print("Average memory Allocation Rate:" + str(getAvg(u_mem_list)))
-    print("Average Maximum Concurrency:" + str(getAvg(max_concur_list)))
-    print("Average Cold Start State Count:" + str(getAvg(cold_start_list)))
-    print("Average Running State Count:" + str(getAvg(run_list)))
-    print("Average Idle State Count:" + str(getAvg(spare_list)))
-    print("Average Dead State Count:" + str(getAvg(kill_list)))
-    print("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
-
-
-def validation():
-    print("validation...")
+    logger.info("Total Energy Consumption:" + str(getEnergy(endTime)))
+    logger.info("Total Latency:" + str(getLatency(endTime)))
+    logger.info("Cold Start Count:" + str(getColdStart()))
+    logger.info("Rejection Count:" + str(getReject()))
+    logger.info("Average CPU Allocation Rate:" + str(getAvg(u_cpu_list)))
+    logger.info("Average memory Allocation Rate:" + str(getAvg(u_mem_list)))
+    logger.info("Average Maximum Concurrency:" + str(getAvg(max_concur_list)))
+    logger.info("Average Cold Start State Count:" + str(getAvg(cold_start_list)))
+    logger.info("Average Running State Count:" + str(getAvg(run_list)))
+    logger.info("Average Idle State Count:" + str(getAvg(spare_list)))
+    logger.info("Average Dead State Count:" + str(getAvg(kill_list)))
+    logger.info("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
 
 
 if __name__ == "__main__":
     initEnvironment()
     sim()
-

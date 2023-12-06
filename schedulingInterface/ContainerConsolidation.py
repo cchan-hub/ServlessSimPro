@@ -1,4 +1,4 @@
-from dataStructure.pm import PM
+from resource.pm import PM
 import copy
 
 
