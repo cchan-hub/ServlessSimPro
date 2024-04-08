@@ -15,8 +15,7 @@ from schedulingInterface.ContainerConsolidation import MinPmNum
 from schedulingInterface.PopQueue import FCFS, SJF, HRRN
 from enumClass.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo, Task, ContainerState
 
-
-# ################## Adjustable Simulation Parameters #######################
+# ####################### Simulation Parameters(Adjustable) #######################
 req_num = 1000
 P_idle = 92.61
 P_max = 259.67
@@ -37,14 +36,14 @@ USE_QUEUE = True
 QUEUE_THRESHOLD = [50] * APP_NUM
 MAX_QUEUE_LENGTH = [20] * APP_NUM
 
-# ################### Adaptable Strategies ########################
+# ####################### Strategies(Adjustable) #######################
 
 ContainerPlacementStrategy = ConPlaceAlgo.FIRST_FIT
 RequestAllocationStrategy = ReqAllocAlgo.EARLIEST_KILLED
 ContainerConsolidationStrategy = ConConsAlgo.MIN_PM_NUM
 PopQueueStrategy = PopQueueAlgo.FCFS
 
-# ################## Global Variables #######################
+# ####################### Global Variables #######################
 max_energy = 0
 max_latency = 0
 max_clodStartTimes = req_num
@@ -75,41 +74,9 @@ run_list = []
 spare_list = []
 kill_list = []
 activePm_list = []
-# ##############################################
 
 
-def initEnvironment():
-    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency, logger
-    # logger
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler('./logs/log')
-    file_handler.setFormatter(logging.Formatter(fmt="%(asctime)-15s %(levelname)s %(filename)s %(lineno)d %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
-    logger.addHandler(file_handler)
-    # 1980951 REQ
-    reqList = resource.req.getReqList()
-    # 119 APP
-    appList = resource.app.getAppList(APP_CONF_RANDOM)
-    # init activeContainers
-    for appId in range(APP_NUM):
-        activeContainers[appId] = []
-        appWaitingQueue[appId] = []
-    # init jobList
-    num0 = 0
-    for req in reqList:
-        seq += 1
-        jobList.append((req.start_timestamp, seq, Task.HANDLE_REQ, req))
-        num0 += 1
-        if num0 == req_num:
-            break
-    num1 = 0
-    for req in reqList:
-        max_energy += (req.duration + appList[req.appId].coldStartTime) * (P_max - P_idle) * appList[
-            req.appId].cpu / cpu_pm + (req.duration + appList[req.appId].coldStartTime + reuseTimeWindow) * P_idle \
-                      + reuseTimeWindow * (P_mid - P_idle)
-        max_latency += appList[req.appId].coldStartTime
-        num1 += 1
-        if num1 == req_num:
-            break
+# ####################### Task Layer #######################
 
 
 def createContainer(req, createTime):
@@ -247,7 +214,8 @@ def addPeriodicJob(req, time):
     global consolidation_num, seq, log_num
     # consolidation periodic task
     if USE_CONSOLIDATION:
-        while time > (CONSOLIDATION_TIME_INTERVAL * consolidation_num) and consolidation_num not in consolidation_num_list:
+        while time > (
+                CONSOLIDATION_TIME_INTERVAL * consolidation_num) and consolidation_num not in consolidation_num_list:
             consolidation_num_list.append(consolidation_num)
             seq += 1
             heapq.heappush(jobList, (CONSOLIDATION_TIME_INTERVAL * consolidation_num, seq, Task.CONSOLIDATION, req))
@@ -258,26 +226,6 @@ def addPeriodicJob(req, time):
         seq += 1
         heapq.heappush(jobList, (LOG_TIME_INTERVAL * log_num, seq, Task.SYS_LOG, req))
         log_num += 1
-
-
-def systemLog(time):
-    updateEnergy(time)
-    updateLatency(time)
-
-    # Snapshot
-    u_cpu, u_mem = getCpuMemUsage()
-    max_concur = getConcur4AllApps()
-    cold_start, run, spare, kill = getContainerStateNum()
-    activePm = getActivePmNum()
-
-    u_cpu_list.append(u_cpu)
-    u_mem_list.append(u_mem)
-    max_concur_list.append(max_concur)
-    cold_start_list.append(cold_start)
-    run_list.append(run)
-    spare_list.append(spare)
-    kill_list.append(kill)
-    activePm_list.append(activePm)
 
 
 def containerConsolidate(time):
@@ -317,7 +265,8 @@ def containerConsolidate(time):
         global cold_start_times
         cold_start_times += 1
 
-# ################ Metrics #######################
+
+# ######################################## Metrics ########################################
 
 
 def updateLatency(time):
@@ -374,7 +323,8 @@ def updateEnergy(time):
             t_pm += time - pm.start_end_time[0]
         else:
             t_pm += pm.start_end_time[1] - pm.start_end_time[0]
-    total_energy = P_idle * t_pm + (P_max - P_mid) * sum_running / cpu_pm + cs_factor * (P_max - P_mid) * sum_cs / cpu_pm + (P_mid - P_idle) * sum_total / cpu_pm
+    total_energy = P_idle * t_pm + (P_max - P_mid) * sum_running / cpu_pm + cs_factor * (
+                P_max - P_mid) * sum_cs / cpu_pm + (P_mid - P_idle) * sum_total / cpu_pm
 
 
 def getEnergyRate(time):
@@ -384,7 +334,7 @@ def getEnergyRate(time):
 
 def getLatencyRate(time):
     updateLatency(time)
-    return total_latency/max_latency
+    return total_latency / max_latency
 
 
 def getLatency(time):
@@ -408,11 +358,11 @@ def getCpuMemUsage():
             total_mem += pm.mem
             using_cpu += pm.cpu - pm.remainCpu
             using_mem += pm.mem - pm.remainMem
-    return using_cpu/total_cpu, using_mem/total_mem
+    return using_cpu / total_cpu, using_mem / total_mem
 
 
 def getColdStartProb():
-    return cold_start_times/max_clodStartTimes
+    return cold_start_times / max_clodStartTimes
 
 
 def getColdStart():
@@ -441,7 +391,7 @@ def getReject():
 
 
 def getRejectProb():
-    return reject_num/req_num
+    return reject_num / req_num
 
 
 def getMigrationNum():
@@ -474,11 +424,84 @@ def getContainerStateNum():
 
 
 def getAvg(li):
-    return sum(li)/len(li)
+    return sum(li) / len(li)
+
+
+# ######################################## logging ########################################
+def systemLog(time):
+    updateEnergy(time)
+    updateLatency(time)
+
+    # Snapshot
+    u_cpu, u_mem = getCpuMemUsage()
+    max_concur = getConcur4AllApps()
+    cold_start, run, spare, kill = getContainerStateNum()
+    activePm = getActivePmNum()
+
+    u_cpu_list.append(u_cpu)
+    u_mem_list.append(u_mem)
+    max_concur_list.append(max_concur)
+    cold_start_list.append(cold_start)
+    run_list.append(run)
+    spare_list.append(spare)
+    kill_list.append(kill)
+    activePm_list.append(activePm)
+
+
+def logInfo(endTime):
+    logger.info("Total Energy Consumption:" + str(getEnergy(endTime)))
+    logger.info("Total Latency:" + str(getLatency(endTime)))
+    logger.info("Cold Start Count:" + str(getColdStart()))
+    logger.info("Rejection Count:" + str(getReject()))
+    logger.info("Average CPU Allocation Rate:" + str(getAvg(u_cpu_list)))
+    logger.info("Average memory Allocation Rate:" + str(getAvg(u_mem_list)))
+    logger.info("Average Maximum Concurrency:" + str(getAvg(max_concur_list)))
+    logger.info("Average Cold Start State Count:" + str(getAvg(cold_start_list)))
+    logger.info("Average Running State Count:" + str(getAvg(run_list)))
+    logger.info("Average Idle State Count:" + str(getAvg(spare_list)))
+    logger.info("Average Dead State Count:" + str(getAvg(kill_list)))
+    logger.info("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
+
+
+# #################################### real-time simulation ####################################
+
+def initEnvironment():
+    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency, logger
+    # logger
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler('./logs/logMetrics')
+    file_handler.setFormatter(logging.Formatter(fmt="%(asctime)-15s %(levelname)s %(filename)s %(lineno)d %(message)s",
+                                                datefmt="%Y-%m-%d %H:%M:%S"))
+    logger.addHandler(file_handler)
+    # 1980951 REQ
+    reqList = resource.req.getReqList()
+    # 119 APP
+    appList = resource.app.getAppList(APP_CONF_RANDOM)
+    # init activeContainers
+    for appId in range(APP_NUM):
+        activeContainers[appId] = []
+        appWaitingQueue[appId] = []
+    # init jobList
+    num0 = 0
+    for req in reqList:
+        seq += 1
+        jobList.append((req.start_timestamp, seq, Task.HANDLE_REQ, req))
+        num0 += 1
+        if num0 == req_num:
+            break
+    num1 = 0
+    for req in reqList:
+        max_energy += (req.duration + appList[req.appId].coldStartTime) * (P_max - P_idle) * appList[
+            req.appId].cpu / cpu_pm + (req.duration + appList[req.appId].coldStartTime + reuseTimeWindow) * P_idle \
+                      + reuseTimeWindow * (P_mid - P_idle)
+        max_latency += appList[req.appId].coldStartTime
+        num1 += 1
+        if num1 == req_num:
+            break
 
 
 def sim():
-    logger.info("system start")
+    logger.info("----------------------------simulation start----------------------------")
     endTime = 0
     while len(jobList) != 0:
         (time, sequence, task, req) = heapq.heappop(jobList)
@@ -499,19 +522,8 @@ def sim():
         if len(jobList) == 0:
             endTime = time
     updateLatency(endTime)
-
-    logger.info("Total Energy Consumption:" + str(getEnergy(endTime)))
-    logger.info("Total Latency:" + str(getLatency(endTime)))
-    logger.info("Cold Start Count:" + str(getColdStart()))
-    logger.info("Rejection Count:" + str(getReject()))
-    logger.info("Average CPU Allocation Rate:" + str(getAvg(u_cpu_list)))
-    logger.info("Average memory Allocation Rate:" + str(getAvg(u_mem_list)))
-    logger.info("Average Maximum Concurrency:" + str(getAvg(max_concur_list)))
-    logger.info("Average Cold Start State Count:" + str(getAvg(cold_start_list)))
-    logger.info("Average Running State Count:" + str(getAvg(run_list)))
-    logger.info("Average Idle State Count:" + str(getAvg(spare_list)))
-    logger.info("Average Dead State Count:" + str(getAvg(kill_list)))
-    logger.info("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
+    logInfo(endTime)
+    logger.info("-----------------------------simulation end-----------------------------")
 
 
 if __name__ == "__main__":
