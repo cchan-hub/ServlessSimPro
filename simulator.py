@@ -2,6 +2,7 @@
 # @Author  : CaoHan
 # @Time    : 2022/11/15 15:30
 
+import json
 import heapq
 import logging
 from resource.container import Container
@@ -16,7 +17,7 @@ from schedulingInterface.PopQueue import FCFS, SJF, HRRN
 from enumClass.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo, Task, ContainerState
 
 # ####################### Simulation Parameters(Adjustable) #######################
-req_num = 1000
+req_num = 200000
 P_idle = 92.61
 P_max = 259.67
 P_mid = 94.8
@@ -24,7 +25,7 @@ cs_factor = 0.52
 
 reuseTimeWindow = 600
 
-USE_CONSOLIDATION = True
+USE_CONSOLIDATION = False
 CONSOLIDATION_TIME_INTERVAL = 300
 CONSOLIDATION_THRESHOLD = 0.38
 
@@ -33,16 +34,20 @@ LOG_TIME_INTERVAL = 50
 APP_CONF_RANDOM = False
 
 USE_QUEUE = True
-QUEUE_THRESHOLD = [50] * APP_NUM
-MAX_QUEUE_LENGTH = [20] * APP_NUM
+PARAM1 = 50
+PARAM2 = 50
+QUEUE_THRESHOLD = [PARAM1] * APP_NUM
+MAX_QUEUE_LENGTH = [PARAM2] * APP_NUM
 
 # ####################### Strategies(Adjustable) #######################
 
 ContainerPlacementStrategy = ConPlaceAlgo.FIRST_FIT
 RequestAllocationStrategy = ReqAllocAlgo.EARLIEST_KILLED
 ContainerConsolidationStrategy = ConConsAlgo.MIN_PM_NUM
-PopQueueStrategy = PopQueueAlgo.FCFS
+PopQueueStrategy = PopQueueAlgo.HRRN
 
+# log file name in /logs/plotFigs
+LOG_STRATEGY = PopQueueStrategy
 # ####################### Global Variables #######################
 max_energy = 0
 max_latency = 0
@@ -66,6 +71,11 @@ jobList = []
 appWaitingQueue = {}
 migration_num = 0
 logger = logging.getLogger(__name__)
+energy_list = []
+latency_list = []
+rej_list = []
+cold_start_times_list = []
+migration_list = []
 u_cpu_list = []
 u_mem_list = []
 max_concur_list = []
@@ -74,6 +84,8 @@ run_list = []
 spare_list = []
 kill_list = []
 activePm_list = []
+time_series_data = {}
+time_series = []
 
 
 # ####################### Task Layer #######################
@@ -274,6 +286,8 @@ def updateLatency(time):
     latency = 0
     for i in range(req_num):
         req = reqList[i]
+        if time < req.start_timestamp:  # not start yet
+            continue
         if not req.isRejected:
             if req.end_timestamp == -1:
                 latency += time - req.start_timestamp
@@ -324,7 +338,7 @@ def updateEnergy(time):
         else:
             t_pm += pm.start_end_time[1] - pm.start_end_time[0]
     total_energy = P_idle * t_pm + (P_max - P_mid) * sum_running / cpu_pm + cs_factor * (
-                P_max - P_mid) * sum_cs / cpu_pm + (P_mid - P_idle) * sum_total / cpu_pm
+            P_max - P_mid) * sum_cs / cpu_pm + (P_mid - P_idle) * sum_total / cpu_pm
 
 
 def getEnergyRate(time):
@@ -438,6 +452,12 @@ def systemLog(time):
     cold_start, run, spare, kill = getContainerStateNum()
     activePm = getActivePmNum()
 
+    time_series.append(time)
+    energy_list.append(total_energy)
+    latency_list.append(total_latency)
+    rej_list.append(reject_num)
+    cold_start_times_list.append(cold_start_times)
+    migration_list.append(migration_num)
     u_cpu_list.append(u_cpu)
     u_mem_list.append(u_mem)
     max_concur_list.append(max_concur)
@@ -449,6 +469,8 @@ def systemLog(time):
 
 
 def logInfo(endTime):
+    # todo 记录本次上传时的参数
+    logger.info("LOG_STRATEGY: "+str(LOG_STRATEGY))
     logger.info("Total Energy Consumption:" + str(getEnergy(endTime)))
     logger.info("Total Latency:" + str(getLatency(endTime)))
     logger.info("Cold Start Count:" + str(getColdStart()))
@@ -461,12 +483,20 @@ def logInfo(endTime):
     logger.info("Average Idle State Count:" + str(getAvg(spare_list)))
     logger.info("Average Dead State Count:" + str(getAvg(kill_list)))
     logger.info("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
+    if LOG_STRATEGY == PopQueueStrategy and USE_QUEUE:
+        with open('logs/plotFigs/' + str(LOG_STRATEGY) + '(' + str(PARAM1) + ',' + str(PARAM2) + ').json',
+                  mode='w') as file:
+            json.dump(time_series_data, file)
+    else:
+        with open('logs/plotFigs/' + str(LOG_STRATEGY) + '.json', mode='w') as file:
+            json.dump(time_series_data, file)
 
 
 # #################################### real-time simulation ####################################
 
 def initEnvironment():
-    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, max_energy, max_latency, logger
+    global reqList, appList, activeContainers, appWaitingQueue, jobList, seq, cpu_pm, P_max, P_mid, P_idle, \
+        max_energy, max_latency, logger, time_series_data
     # logger
     logger.setLevel(logging.INFO)
     file_handler = logging.FileHandler('./logs/logMetrics')
@@ -498,6 +528,22 @@ def initEnvironment():
         num1 += 1
         if num1 == req_num:
             break
+    time_series_data = {
+        'time_series': time_series,
+        'energy_list': energy_list,
+        'latency_list': latency_list,
+        'cold_start_times_list': cold_start_times_list,
+        'migration_list': migration_list,
+        'u_cpu_list': u_cpu_list,
+        'u_mem_list': u_mem_list,
+        'max_concur_list': max_concur_list,
+        'cold_start_list': cold_start_list,
+        'run_list': run_list,
+        'spare_list': spare_list,
+        'kill_list': kill_list,
+        'activePm_list': activePm_list,
+        'rej_list': rej_list
+    }
 
 
 def sim():

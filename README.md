@@ -1,4 +1,5 @@
 # ServlessSimPro
+
 A Comprehensive Serverless Simulation Platform in a Cloud Environment.
 
 Reference article: The related article is currently under review.
@@ -12,7 +13,16 @@ It is recommended to use Python 3.9 as the Python interpreter version.
 
 You can start the simulation by running `simulator.py`.
 
+### Project Structure
+- [EnumClass](enumClass) helps to manage enum class in the system.
+- [Logs](logs) directory contains running logs, results, and plotting functionality.
+- [Resource](resource) directory contains different resource classes and request classes used in the system.
+- [SchedulingInterface](schedulingInterface) directory contains different scheduling algorithm classes.
+- [Trace](Trace) directory contains the dataset used in this project.
+- [Simulator.py](simulator.py) is the main program for serverless simulation.
+
 ### Parameter Adjustment
+修改过。。。。。。。。。。。。
 
 You can adjust the simulation parameter in [simulator.py](simulator.py):
 ```python
@@ -70,6 +80,7 @@ Noted: `Global Variables` are simulation variables, their values change during s
 
 ### Simulation Results
 #### Metrics
+After simulation, the results can be found in [logMetrics](./logs/logMetrics). 
 We provide some metrics such as:
 ```
 Total Energy Consumption
@@ -85,8 +96,13 @@ Average Idle State Count
 Average Dead State Count
 Average Active Physical Machine Count
 ```
-These results can be found in [logMetrics.py](./logs/logMetrics)
+If you want more customized metrics, add them inside the `logInfo` function in the [simulator.py](simulator.py).
+
 #### Plot Figs
-...
+We provide plotting functionality. If you want to plot system metrics over time, please refer to the [Plot Readme](logs/README.md).
+
 ### Contact Information
+你好 Hello Hola!
+
+Welcome to use this platform for your research work, and feel free to continue improving this simulation platform.
 If you have any questions, please contact 220222036@seu.edu.cn.
