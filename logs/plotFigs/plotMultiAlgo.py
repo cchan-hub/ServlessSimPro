@@ -1,7 +1,5 @@
 from matplotlib import pyplot as plt
-import numpy as np
 import json
-import seaborn as sns
 from enumClass.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo
 
 
@@ -154,10 +152,7 @@ def plotMigration(time_series, migration_list, color_list, algoNameList):
 
 if __name__ == "__main__":
     # select the Comparison algorithms
-    resolveNameList = [ReqAllocAlgo.EARLIEST_KILLED, str(PopQueueAlgo.FCFS) + "(100,50)",
-                       str(PopQueueAlgo.FCFS) + "(50,100)", str(PopQueueAlgo.FCFS) + "(100,100)",
-                       str(PopQueueAlgo.FCFS) + "(50,50)", str(PopQueueAlgo.SJF) + "(50,50)",
-                       str(PopQueueAlgo.HRRN) + "(50,50)"]
+    resolveNameList = [ReqAllocAlgo.EARLIEST_KILLED, ReqAllocAlgo.RANDOM, ReqAllocAlgo.LATEST_KILLED]
 
     time_series = []
     energy_list = []

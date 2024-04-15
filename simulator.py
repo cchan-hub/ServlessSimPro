@@ -44,10 +44,10 @@ MAX_QUEUE_LENGTH = [PARAM2] * APP_NUM
 ContainerPlacementStrategy = ConPlaceAlgo.FIRST_FIT
 RequestAllocationStrategy = ReqAllocAlgo.EARLIEST_KILLED
 ContainerConsolidationStrategy = ConConsAlgo.MIN_PM_NUM
-PopQueueStrategy = PopQueueAlgo.HRRN
+PopQueueStrategy = PopQueueAlgo.FCFS
 
 # log file name in /logs/plotFigs
-LOG_STRATEGY = PopQueueStrategy
+LOG_STRATEGY = RequestAllocationStrategy
 # ####################### Global Variables #######################
 max_energy = 0
 max_latency = 0
@@ -469,8 +469,22 @@ def systemLog(time):
 
 
 def logInfo(endTime):
-    # todo 记录本次上传时的参数
+    logger.info("req_num: " + str(req_num))
+    logger.info("reuseTimeWindow: " + str(reuseTimeWindow))
+    logger.info("USE_CONSOLIDATION: " + str(USE_CONSOLIDATION))
+    logger.info("CONSOLIDATION_TIME_INTERVAL: " + str(CONSOLIDATION_TIME_INTERVAL))
+    logger.info("CONSOLIDATION_THRESHOLD: " + str(CONSOLIDATION_THRESHOLD))
+    logger.info("LOG_TIME_INTERVAL: " + str(LOG_TIME_INTERVAL))
+    logger.info("APP_CONF_RANDOM: " + str(APP_CONF_RANDOM))
+    logger.info("USE_QUEUE: " + str(USE_QUEUE))
+    logger.info("PARAM1: " + str(PARAM1))
+    logger.info("PARAM2: " + str(PARAM2))
+    logger.info("ContainerPlacementStrategy: "+str(ContainerPlacementStrategy))
+    logger.info("RequestAllocationStrategy: "+str(RequestAllocationStrategy))
+    logger.info("ContainerConsolidationStrategy: " + str(ContainerConsolidationStrategy))
+    logger.info("PopQueueStrategy: " + str(PopQueueStrategy))
     logger.info("LOG_STRATEGY: "+str(LOG_STRATEGY))
+    logger.info("-*-*-*-*-*-* metrics -*-*-*-*-*-*")
     logger.info("Total Energy Consumption:" + str(getEnergy(endTime)))
     logger.info("Total Latency:" + str(getLatency(endTime)))
     logger.info("Cold Start Count:" + str(getColdStart()))
@@ -485,6 +499,10 @@ def logInfo(endTime):
     logger.info("Average Active Physical Machine Count:" + str(getAvg(activePm_list)))
     if LOG_STRATEGY == PopQueueStrategy and USE_QUEUE:
         with open('logs/plotFigs/' + str(LOG_STRATEGY) + '(' + str(PARAM1) + ',' + str(PARAM2) + ').json',
+                  mode='w') as file:
+            json.dump(time_series_data, file)
+    elif LOG_STRATEGY == ContainerConsolidationStrategy and USE_CONSOLIDATION:
+        with open('logs/plotFigs/' + str(LOG_STRATEGY) + '(' + str(CONSOLIDATION_TIME_INTERVAL/60) + ').json',
                   mode='w') as file:
             json.dump(time_series_data, file)
     else:

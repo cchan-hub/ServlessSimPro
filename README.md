@@ -7,7 +7,7 @@ Reference article: The related article is currently under review.
 ### Download and Run
 When downloading the code, please use Git. 
 
-After `git clone`, make sure you already download /Trace/AzureFunctionsInvocationTraceForTwoWeeksJan2021.txt. This is the default dataset of our simulator.
+After `git clone`, make sure you already download `/Trace/AzureFunctionsInvocationTraceForTwoWeeksJan2021.txt`. This is the default dataset of our simulator.
 
 It is recommended to use Python 3.9 as the Python interpreter version. 
 
@@ -22,7 +22,6 @@ You can start the simulation by running `simulator.py`.
 - [Simulator.py](simulator.py) is the main program for serverless simulation.
 
 ### Parameter Adjustment
-修改过。。。。。。。。。。。。
 
 You can adjust the simulation parameter in [simulator.py](simulator.py):
 ```python
@@ -55,8 +54,10 @@ LOG_TIME_INTERVAL = 50
 APP_CONF_RANDOM = False
 
 USE_QUEUE = True
-QUEUE_THRESHOLD = [50] * APP_NUM
-MAX_QUEUE_LENGTH = [20] * APP_NUM
+PARAM1 = 50
+PARAM2 = 50
+QUEUE_THRESHOLD = [PARAM1] * APP_NUM
+MAX_QUEUE_LENGTH = [PARAM2] * APP_NUM
 
 # ####################### Strategies(Adjustable) #######################
 
@@ -64,6 +65,9 @@ ContainerPlacementStrategy = ConPlaceAlgo.FIRST_FIT
 RequestAllocationStrategy = ReqAllocAlgo.EARLIEST_KILLED
 ContainerConsolidationStrategy = ConConsAlgo.MIN_PM_NUM
 PopQueueStrategy = PopQueueAlgo.FCFS
+
+# log file name in /logs/plotFigs
+LOG_STRATEGY = RequestAllocationStrategy
 ```
 For `Simulation Parameters(Adjustable)`:
 * `req_num` is the number of arrival requests.
@@ -99,7 +103,7 @@ Average Active Physical Machine Count
 If you want more customized metrics, add them inside the `logInfo` function in the [simulator.py](simulator.py).
 
 #### Plot Figs
-We provide plotting functionality. If you want to plot system metrics over time, please refer to the [Plot Readme](logs/README.md).
+We provide plotting functionality. If you want to plot system metrics, please refer to the [Plot Readme](logs/README.md).
 
 ### Contact Information
 你好 Hello Hola!

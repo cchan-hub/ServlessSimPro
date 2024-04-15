@@ -1,7 +1,5 @@
 from matplotlib import pyplot as plt
-import numpy as np
 import json
-import seaborn as sns
 from enumClass.enumClass import ReqAllocAlgo, ConPlaceAlgo, ConConsAlgo, PopQueueAlgo
 
 
