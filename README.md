@@ -2,7 +2,9 @@
 
 A Comprehensive Serverless Simulation Platform in a Cloud Environment.
 
-Reference article: The related article is currently under review.
+Reference article: 
+
+`ServlessSimPro: A comprehensive serverless simulation platform`
 
 ### Download and Run
 When downloading the code, please use Git. 
